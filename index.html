@@ -858,6 +858,145 @@
     .modal-btn:hover {
       transform: translateY(-1px);
     }
+    /* CINEMATIC UPGRADES */
+
+.page {
+  opacity: 0;
+  transform: translateY(10px);
+  filter: blur(4px);
+  transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
+}
+
+.page.active {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.reel-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.reel-item::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(129, 140, 248, 0.18), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.12), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transform: translate3d(0, 8px, 0);
+  pointer-events: none;
+}
+
+.reel-item:hover::before {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.reel-item:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.btn.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.btn.loading::after {
+  content: "…";
+  margin-left: 6px;
+  animation: dots 1s steps(3, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: " "; }
+  33% { content: "."; }
+  66% { content: ".."; }
+  100% { content: "..."; }
+}
+
+/* VIDEO MODAL */
+
+.video-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.88);
+  backdrop-filter: blur(22px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+}
+
+.video-modal-backdrop.active {
+  display: flex;
+}
+
+.video-modal-window {
+  width: min(720px, 92vw);
+  border-radius: 24px;
+  padding: 16px 16px 12px;
+  background: radial-gradient(circle at 0% 0%, #020617, #020617 40%, #020617 100%);
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  box-shadow: 0 40px 100px rgba(15, 23, 42, 0.98);
+  position: relative;
+  overflow: hidden;
+}
+
+.video-modal-window::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(129, 140, 248, 0.35), transparent 55%),
+    radial-gradient(circle at 80% 100%, rgba(56, 189, 248, 0.2), transparent 55%);
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.video-modal-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.video-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin-bottom: 10px;
+}
+
+.video-modal-close {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text-main);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.video-modal-close:hover {
+  transform: translateY(-1px);
+}
+
+.video-modal-video {
+  width: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: #020617;
+}
+
   </style>
 </head>
 
@@ -1083,240 +1222,366 @@
       </div>
     </div>
   </div>
+  <!-- VIDEO PREVIEW MODAL -->
+  <div class="video-modal-backdrop" id="video-modal">
+    <div class="video-modal-window">
+      <div class="video-modal-inner">
+        <div class="video-modal-header">
+          <span id="video-modal-title">Recovered reel</span>
+          <button class="video-modal-close" id="video-modal-close">Close</button>
+        </div>
+        <video id="video-modal-player" class="video-modal-video" controls playsinline></video>
+      </div>
+    </div>
+  </div>
+  
   <script>
-    // ===========================
-    // BASIC USER STATE (LOCAL)
-    // ===========================
-    function getUser() {
-      try {
-        return JSON.parse(localStorage.getItem("pt_user") || "null");
-      } catch {
-        return null;
-      }
+  // ===========================
+  // BASIC USER STATE (LOCAL)
+  // ===========================
+  function getUser() {
+    try {
+      return JSON.parse(localStorage.getItem("pt_user") || "null");
+    } catch {
+      return null;
     }
+  }
 
-    function setUser(user) {
-      if (user) localStorage.setItem("pt_user", JSON.stringify(user));
-      else localStorage.removeItem("pt_user");
-    }
+  function setUser(user) {
+    if (user) localStorage.setItem("pt_user", JSON.stringify(user));
+    else localStorage.removeItem("pt_user");
+  }
 
-    // ===========================
-    // ELEMENT REFERENCES
-    // ===========================
-    const bodyEl = document.body;
-    const navIcons = document.querySelectorAll(".nav-icon");
-    const pages = document.querySelectorAll(".page");
-    const topCtaBtn = document.getElementById("top-cta-btn");
+  // ===========================
+  // ELEMENT REFERENCES
+  // ===========================
+  const navIcons = document.querySelectorAll(".nav-icon");
+  const pages = document.querySelectorAll(".page");
+  const topCtaBtn = document.getElementById("top-cta-btn");
 
-    const homeAnon = document.getElementById("home-anon");
-    const homeMember = document.getElementById("home-member");
-    const memberGreeting = document.getElementById("member-greeting");
+  const homeAnon = document.getElementById("home-anon");
+  const homeMember = document.getElementById("home-member");
+  const memberGreeting = document.getElementById("member-greeting");
 
-    const modal = document.getElementById("create-modal");
-    const createStatus = document.getElementById("create-status");
+  const modal = document.getElementById("create-modal");
+  const createStatus = document.getElementById("create-status");
 
-    // ===========================
-    // NAVIGATION
-    // ===========================
-    function navigateTo(pageKey) {
-      pages.forEach(p => p.classList.remove("active"));
-      const target = document.getElementById("page-" + pageKey);
-      if (target) target.classList.add("active");
+  const generateBtn = document.getElementById("generate-video-btn");
+  const generateStatus = document.getElementById("generate-status");
+  const dreamNotesEl = document.getElementById("dream-notes");
 
-      navIcons.forEach(i => i.classList.remove("active"));
-      navIcons.forEach(i => {
-        if (i.dataset.page === pageKey) i.classList.add("active");
-      });
-    }
+  const videoModal = document.getElementById("video-modal");
+  const videoModalPlayer = document.getElementById("video-modal-player");
+  const videoModalTitle = document.getElementById("video-modal-title");
+  const videoModalClose = document.getElementById("video-modal-close");
 
-    navIcons.forEach(icon => {
-      icon.addEventListener("click", () => {
-        navigateTo(icon.dataset.page);
-      });
+  // ===========================
+  // NAVIGATION
+  // ===========================
+  function navigateTo(pageKey) {
+    pages.forEach(p => p.classList.remove("active"));
+    const target = document.getElementById("page-" + pageKey);
+    if (target) target.classList.add("active");
+
+    navIcons.forEach(i => i.classList.remove("active"));
+    navIcons.forEach(i => {
+      if (i.dataset.page === pageKey) i.classList.add("active");
     });
+  }
 
-    // ===========================
-    // USER STATE APPLICATION
-    // ===========================
-    function applyUserState() {
-      const user = getUser();
+  navIcons.forEach(icon => {
+    icon.addEventListener("click", () => {
+      navigateTo(icon.dataset.page);
+    });
+  });
 
-      if (!user) {
-        homeAnon.style.display = "block";
-        homeMember.style.display = "none";
-        topCtaBtn.textContent = "Create account";
-        navigateTo("home");
-        return;
-      }
+  // ===========================
+  // USER STATE APPLICATION
+  // ===========================
+  function applyUserState() {
+    const user = getUser();
 
-      homeAnon.style.display = "none";
-      homeMember.style.display = "block";
-
-      const name = user.name && user.name.trim() ? user.name.trim() : "dreamer";
-      memberGreeting.textContent = "good morning, " + name.toLowerCase();
-      topCtaBtn.textContent = "Your archive";
-
+    if (!user) {
+      homeAnon.style.display = "block";
+      homeMember.style.display = "none";
+      topCtaBtn.textContent = "Create account";
       navigateTo("home");
+      return;
     }
 
-    // ===========================
-    // MODAL CONTROL
-    // ===========================
-    function openModal() {
-      createStatus.textContent = "";
-      modal.classList.add("active");
+    homeAnon.style.display = "none";
+    homeMember.style.display = "block";
+
+    const name = user.name && user.name.trim() ? user.name.trim() : "dreamer";
+    memberGreeting.textContent = "good morning, " + name.toLowerCase();
+    topCtaBtn.textContent = "Your archive";
+
+    navigateTo("home");
+  }
+
+  // ===========================
+  // MODAL CONTROL
+  // ===========================
+  function openModal() {
+    createStatus.textContent = "";
+    modal.classList.add("active");
+  }
+
+  function closeModal() {
+    modal.classList.remove("active");
+  }
+
+  topCtaBtn.onclick = () => {
+    const user = getUser();
+    if (user) {
+      navigateTo("home");
+      return;
+    }
+    openModal();
+  };
+
+  document.getElementById("create-cancel").onclick = () => {
+    closeModal();
+  };
+
+  document.getElementById("create-submit").onclick = () => {
+    const email = document.getElementById("create-email").value.trim().toLowerCase();
+    const name = document.getElementById("create-name").value.trim();
+    const pass = document.getElementById("create-pass").value.trim();
+
+    if (!email || !pass) {
+      createStatus.textContent = "Fill email and passphrase.";
+      return;
     }
 
-    function closeModal() {
-      modal.classList.remove("active");
-    }
-
-    topCtaBtn.onclick = () => {
-      const user = getUser();
-      if (user) {
-        navigateTo("home");
-        return;
-      }
-      openModal();
-    };
-
-    document.getElementById("create-cancel").onclick = () => {
+    const user = { email, name, passphrase: pass, createdAt: new Date().toISOString() };
+    setUser(user);
+    createStatus.textContent = "Archive activated.";
+    setTimeout(() => {
       closeModal();
-    };
+      applyUserState();
+      fetchReels();
+    }, 500);
+  };
 
-    document.getElementById("create-submit").onclick = () => {
-      const email = document.getElementById("create-email").value.trim().toLowerCase();
-      const name = document.getElementById("create-name").value.trim();
-      const pass = document.getElementById("create-pass").value.trim();
+  // ===========================
+  // REELS RENDERING
+  // ===========================
+  function renderReels(reels) {
+    const containers = [
+      document.getElementById("reels-list"),
+      document.getElementById("reels-list-page")
+    ];
 
-      if (!email || !pass) {
-        createStatus.textContent = "Fill email and passphrase.";
-        return;
-      }
-
-      const user = { email, name, passphrase: pass, createdAt: new Date().toISOString() };
-      setUser(user);
-      createStatus.textContent = "Archive activated.";
-      setTimeout(() => {
-        closeModal();
-        applyUserState();
-      }, 500);
-    };
-
-    // ===========================
-    // HOOK: renderReels(reels)
-    // ===========================
-    function renderReels(reels) {
-      const containers = [
-        document.getElementById("reels-list"),
-        document.getElementById("reels-list-page")
-      ];
-
-      containers.forEach(container => {
-        if (!container) return;
-        container.innerHTML = "";
-
-        if (!reels || reels.length === 0) {
-          const p = document.createElement("p");
-          p.className = "empty-state";
-          p.textContent = "No dream reels yet.";
-          container.appendChild(p);
-          return;
-        }
-
-        reels.forEach(reel => {
-          const item = document.createElement("div");
-          item.className = "reel-item";
-
-          const title = document.createElement("div");
-          title.className = "reel-title";
-          title.textContent = reel.title || "Untitled dream";
-
-          const meta = document.createElement("div");
-          meta.className = "reel-meta";
-          meta.textContent =
-            (reel.duration ? reel.duration + "s • " : "") +
-            (reel.createdAt || "");
-
-          item.appendChild(title);
-          item.appendChild(meta);
-
-          if (reel.videoUrl) {
-            item.style.cursor = "pointer";
-            item.onclick = () => window.open(reel.videoUrl, "_blank");
-          }
-
-          container.appendChild(item);
-        });
-      });
-    }
-
-    // ===========================
-    // HOOK: updateMetrics(metrics)
-    // ===========================
-    function updateMetrics(metrics) {
-      if (!metrics) return;
-      if (metrics.heartRate) document.getElementById("metric-heart").textContent = metrics.heartRate;
-      if (metrics.sleepDuration) document.getElementById("metric-sleep").textContent = metrics.sleepDuration;
-      if (metrics.remCycles) document.getElementById("metric-rem").textContent = metrics.remCycles;
-      if (metrics.movement) document.getElementById("metric-move").textContent = metrics.movement;
-    }
-
-    // ===========================
-    // HOOK: updateWakeSummary(list)
-    // ===========================
-    function updateWakeSummary(metricList) {
-      const container = document.getElementById("wake-metrics");
+    containers.forEach(container => {
+      if (!container) return;
       container.innerHTML = "";
 
-      if (!metricList || metricList.length === 0) {
+      if (!reels || reels.length === 0) {
         const p = document.createElement("p");
         p.className = "empty-state";
-        p.textContent = "No tracked data yet.";
+        p.textContent = "No dream reels yet.";
         container.appendChild(p);
         return;
       }
 
-      metricList.forEach(m => {
-        const card = document.createElement("div");
-        card.className = "metric";
+      reels.forEach(reel => {
+        const item = document.createElement("div");
+        item.className = "reel-item";
 
-        const label = document.createElement("div");
-        label.className = "metric-label";
-        label.textContent = m.label;
+        const textWrap = document.createElement("div");
 
-        const value = document.createElement("div");
-        value.className = "metric-value";
-        value.textContent = m.value;
+        const title = document.createElement("div");
+        title.className = "reel-title";
+        title.textContent = reel.title || "Untitled dream";
 
-        card.appendChild(label);
-        card.appendChild(value);
-        container.appendChild(card);
+        const meta = document.createElement("div");
+        meta.className = "reel-meta";
+        meta.textContent =
+          (reel.duration ? reel.duration + "s • " : "") +
+          (reel.createdAt || "");
+
+        textWrap.appendChild(title);
+        textWrap.appendChild(meta);
+        item.appendChild(textWrap);
+
+        if (reel.videoUrl) {
+          item.style.cursor = "pointer";
+          item.onclick = () => openVideoModal(reel.videoUrl, reel.title || "Recovered reel");
+        }
+
+        container.appendChild(item);
       });
+    });
+  }
+
+  // ===========================
+  // METRICS HELPERS
+  // ===========================
+  function updateMetrics(metrics) {
+    if (!metrics) return;
+    if (metrics.heartRate) document.getElementById("metric-heart").textContent = metrics.heartRate;
+    if (metrics.sleepDuration) document.getElementById("metric-sleep").textContent = metrics.sleepDuration;
+    if (metrics.remCycles) document.getElementById("metric-rem").textContent = metrics.remCycles;
+    if (metrics.movement) document.getElementById("metric-move").textContent = metrics.movement;
+  }
+
+  function updateWakeSummary(metricList) {
+    const container = document.getElementById("wake-metrics");
+    container.innerHTML = "";
+
+    if (!metricList || metricList.length === 0) {
+      const p = document.createElement("p");
+      p.className = "empty-state";
+      p.textContent = "No tracked data yet.";
+      container.appendChild(p);
+      return;
     }
 
-    // ===========================
-    // GENERATE BUTTON
-    // ===========================
-    document.getElementById("generate-video-btn").onclick = () => {
-      const notes = document.getElementById("dream-notes").value.trim();
-      const status = document.getElementById("generate-status");
+    metricList.forEach(m => {
+      const card = document.createElement("div");
+      card.className = "metric";
 
-      if (!notes) {
-        status.textContent = "Write a description first.";
+      const label = document.createElement("div");
+      label.className = "metric-label";
+      label.textContent = m.label;
+
+      const value = document.createElement("div");
+      value.className = "metric-value";
+      value.textContent = m.value;
+
+      card.appendChild(label);
+      card.appendChild(value);
+      container.appendChild(card);
+    });
+  }
+
+  // ===========================
+  // VIDEO MODAL CONTROL
+  // ===========================
+  function openVideoModal(url, title) {
+    videoModalTitle.textContent = title || "Recovered reel";
+    videoModalPlayer.src = url;
+    videoModalPlayer.currentTime = 0;
+    videoModalPlayer.play().catch(() => {});
+    videoModal.classList.add("active");
+  }
+
+  function closeVideoModal() {
+    videoModal.classList.remove("active");
+    videoModalPlayer.pause();
+    videoModalPlayer.src = "";
+  }
+
+  videoModalClose.addEventListener("click", closeVideoModal);
+  videoModal.addEventListener("click", (e) => {
+    if (e.target === videoModal) closeVideoModal();
+  });
+
+  // ===========================
+  // BACKEND CALLS
+  // ===========================
+  async function fetchReels() {
+    try {
+      const res = await fetch("/api/getReels");
+      if (!res.ok) throw new Error("Failed to load reels");
+      const data = await res.json();
+      const reels = Array.isArray(data) ? data : (data.reels || []);
+      renderReels(reels);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function saveReel(reel) {
+    try {
+      await fetch("/api/saveReel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reel)
+      });
+    } catch (err) {
+      console.error("Failed to save reel", err);
+    }
+  }
+
+  // ===========================
+  // GENERATE BUTTON (CINEMATIC)
+  // ===========================
+  generateBtn.onclick = async () => {
+    const notes = dreamNotesEl.value.trim();
+    if (!notes) {
+      generateStatus.textContent = "Write a description first.";
+      return;
+    }
+
+    const user = getUser();
+    const email = user?.email || null;
+
+    const metrics = {
+      heartRate: document.getElementById("metric-heart").textContent,
+      sleepDuration: document.getElementById("metric-sleep").textContent,
+      remCycles: document.getElementById("metric-rem").textContent,
+      movement: document.getElementById("metric-move").textContent
+    };
+
+    generateBtn.classList.add("loading");
+    generateStatus.textContent = "Recovering traces from last night...";
+    try {
+      const res = await fetch("/api/generateDream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notes,
+          metrics,
+          userEmail: email
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Generator error");
+      }
+
+      const data = await res.json();
+      const videoUrl = data.videoUrl || data.url;
+      const title = data.title || "Recovered dream";
+      const duration = data.duration || null;
+      const createdAt = data.createdAt || new Date().toISOString();
+
+      if (!videoUrl) {
+        generateStatus.textContent = "Generator responded, but no video URL was returned.";
         return;
       }
 
-      status.textContent = "Ready for API: send notes + metrics to your endpoint...";
-    };
+      openVideoModal(videoUrl, title);
 
-    // ===========================
-    // INIT
-    // ===========================
-    window.addEventListener("load", () => {
-      applyUserState();
-    });
-  </script>
+      await saveReel({
+        title,
+        videoUrl,
+        duration,
+        createdAt
+      });
+
+      await fetchReels();
+
+      generateStatus.textContent = "New reel recovered and added to your archive.";
+    } catch (err) {
+      console.error(err);
+      generateStatus.textContent = "Something glitched in the generator. Try again in a moment.";
+    } finally {
+      generateBtn.classList.remove("loading");
+    }
+  };
+
+  // ===========================
+  // INIT
+  // ===========================
+  window.addEventListener("load", () => {
+    applyUserState();
+    fetchReels();
+  });
+</script>
+
 
 </body>
 </html>
