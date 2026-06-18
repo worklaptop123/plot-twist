@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
     // HuggingFace API call
     const hfRes = await fetch(
-      "https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid",
+      "https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt",
       {
         method: "POST",
         headers: {
