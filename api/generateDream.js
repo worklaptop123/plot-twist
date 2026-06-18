@@ -6,24 +6,24 @@ export default async function handler(req, res) {
   try {
     const { notes, metrics, userEmail } = req.body;
 
-    // HuggingFace API call
-    const hfRes = await fetch(
-      https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.HF_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          inputs: notes || "dream sequence",
-          parameters: {
-            num_frames: 24,
-            fps: 12
-          }
-        })
+   // HuggingFace API call
+const hfRes = await fetch(
+  "https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt",
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.HF_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      inputs: notes || "dream sequence",
+      parameters: {
+        num_frames: 24,
+        fps: 12
       }
-    );
+    })
+  }
+)
 
     if (!hfRes.ok) {
       const errText = await hfRes.text();
